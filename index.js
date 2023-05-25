@@ -1,7 +1,7 @@
 "use strict";
 
 import { NativeModules, Platform } from "react-native";
-import semverLt from 'semver/functions/lt'
+import semverLt from "semver/functions/lt";
 
 const RNUpdateAPK = NativeModules.RNUpdateAPK;
 
@@ -14,28 +14,26 @@ export class UpdateAPK {
 
   get = (url, success, error, options = {}) => {
     fetch(url, options)
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           let message;
           if (response.statusText) {
-            message = `${response.url}  ${response.statusText}`
-          }
-          else {
-            message = `${response.url} Status Code:${response.status}`
+            message = `${response.url}  ${response.statusText}`;
+          } else {
+            message = `${response.url} Status Code:${response.status}`;
           }
           throw Error(message);
         }
         return response;
       })
-      .then(response => response.json())
-      .then(json => {
+      .then((response) => response.json())
+      .then((json) => {
         success && success(json);
       })
-      .catch(err => {
+      .catch((err) => {
         error && error(err);
       });
   };
-
 
   getApkVersion = () => {
     if (jobId !== -1) {
@@ -53,17 +51,31 @@ export class UpdateAPK {
     );
   };
 
-  getApkVersionSuccess = remote => {
+  getApkVersionSuccess = (remote) => {
     console.log("getApkVersionSuccess", remote);
+    this.options.onGetApkVersionSuccess(remote);
     // TODO switch this to versionCode
     let outdated = false;
-    if (remote.versionCode && (remote.versionCode > RNUpdateAPK.versionCode)) {
-      console.log('RNUpdateAPK::getApkVersionSuccess - outdated based on code, local/remote: ' + RNUpdateAPK.versionCode + "/" + remote.versionCode);
+    if (remote.versionCode && remote.versionCode > RNUpdateAPK.versionCode) {
+      console.log(
+        "RNUpdateAPK::getApkVersionSuccess - outdated based on code, local/remote: " +
+          RNUpdateAPK.versionCode +
+          "/" +
+          remote.versionCode
+      );
       outdated = true;
     }
-    if (!remote.versionCode && semverLt(RNUpdateAPK.versionName, remote.versionName)) {
-      console.log('RNUpdateAPK::getApkVersionSuccess - APK outdated based on version name, local/remote: ' + RNUpdateAPK.versionName + "/" + remote.versionName);
-      outdated = true
+    if (
+      !remote.versionCode &&
+      semverLt(RNUpdateAPK.versionName, remote.versionName)
+    ) {
+      console.log(
+        "RNUpdateAPK::getApkVersionSuccess - APK outdated based on version name, local/remote: " +
+          RNUpdateAPK.versionName +
+          "/" +
+          remote.versionName
+      );
+      outdated = true;
     }
     if (outdated) {
       if (remote.forceUpdate) {
@@ -72,7 +84,7 @@ export class UpdateAPK {
         }
         this.downloadApk(remote);
       } else if (this.options.needUpdateApp) {
-        this.options.needUpdateApp(isUpdate => {
+        this.options.needUpdateApp((isUpdate) => {
           if (isUpdate) {
             this.downloadApk(remote);
           }
@@ -83,14 +95,18 @@ export class UpdateAPK {
     }
   };
 
-  downloadApk = remote => {
+  downloadApk = (remote) => {
     const RNFS = require("react-native-fs");
-    const progress = data => {
+    const progress = (data) => {
       const percentage = ((100 * data.bytesWritten) / data.contentLength) | 0;
       this.options.downloadApkProgress &&
-        this.options.downloadApkProgress(percentage, data.contentLength, data.bytesWritten);
+        this.options.downloadApkProgress(
+          percentage,
+          data.contentLength,
+          data.bytesWritten
+        );
     };
-    const begin = res => {
+    const begin = (res) => {
       console.log("RNUpdateAPK::downloadApk - downloadApkStart");
       this.options.downloadApkStart && this.options.downloadApkStart();
     };
@@ -109,7 +125,7 @@ export class UpdateAPK {
           begin,
           progress,
           background: true,
-          progressDivider
+          progressDivider,
         },
         options
       )
@@ -118,18 +134,26 @@ export class UpdateAPK {
     jobId = ret.jobId;
 
     ret.promise
-      .then(res => {
-        if (res['statusCode'] >= 400 && res['statusCode'] <= 599) {
-          throw "Failed to Download APK. Server returned with " + res['statusCode'] + " statusCode";
+      .then((res) => {
+        if (res["statusCode"] >= 400 && res["statusCode"] <= 599) {
+          throw (
+            "Failed to Download APK. Server returned with " +
+            res["statusCode"] +
+            " statusCode"
+          );
         }
         console.log("RNUpdateAPK::downloadApk - downloadApkEnd");
         this.options.downloadApkEnd && this.options.downloadApkEnd();
         RNUpdateAPK.getApkInfo(downloadDestPath)
-          .then(res => {
+          .then((res) => {
             console.log(
-              "RNUpdateAPK::downloadApk - Old Cert SHA-256: " + RNUpdateAPK.signatures[0].thumbprint
+              "RNUpdateAPK::downloadApk - Old Cert SHA-256: " +
+                RNUpdateAPK.signatures[0].thumbprint
             );
-            console.log("RNUpdateAPK::downloadApk - New Cert SHA-256: " + res.signatures[0].thumbprint);
+            console.log(
+              "RNUpdateAPK::downloadApk - New Cert SHA-256: " +
+                res.signatures[0].thumbprint
+            );
             if (
               res.signatures[0].thumbprint !==
               RNUpdateAPK.signatures[0].thumbprint
@@ -140,9 +164,10 @@ export class UpdateAPK {
               );
             }
           })
-          .catch(rej => {
+          .catch((rej) => {
             console.log("RNUpdateAPK::downloadApk - apk info error: ", rej);
-            this.options.onError && this.options.onError("Failed to get Downloaded APK Info");
+            this.options.onError &&
+              this.options.onError("Failed to get Downloaded APK Info");
             // re-throw so we don't attempt to install the APK, this will call the downloadApkError handler
             throw rej;
           });
@@ -153,7 +178,7 @@ export class UpdateAPK {
 
         jobId = -1;
       })
-      .catch(err => {
+      .catch((err) => {
         this.downloadApkError(err);
         jobId = -1;
       });
@@ -173,9 +198,11 @@ export class UpdateAPK {
     );
   };
 
-  getAppStoreVersionSuccess = data => {
+  getAppStoreVersionSuccess = (data) => {
     if (data.resultCount < 1) {
-      console.log("RNUpdateAPK::getAppStoreVersionSuccess - iosAppId is wrong.");
+      console.log(
+        "RNUpdateAPK::getAppStoreVersionSuccess - iosAppId is wrong."
+      );
       return;
     }
     const result = data.results[0];
@@ -183,9 +210,14 @@ export class UpdateAPK {
     const trackViewUrl = result.trackViewUrl;
 
     if (semverLt(RNUpdateAPK.versionName, version)) {
-      console.log('RNUpdateAPK::getAppStoreVersionSuccess - outdated based on version name, local/remote: ' + RNUpdateAPK.versionName + "/" + version);
+      console.log(
+        "RNUpdateAPK::getAppStoreVersionSuccess - outdated based on version name, local/remote: " +
+          RNUpdateAPK.versionName +
+          "/" +
+          version
+      );
       if (this.options.needUpdateApp) {
-        this.options.needUpdateApp(isUpdate => {
+        this.options.needUpdateApp((isUpdate) => {
           if (isUpdate) {
             RNUpdateAPK.installFromAppStore(trackViewUrl);
           }
@@ -196,12 +228,12 @@ export class UpdateAPK {
     }
   };
 
-  getVersionError = err => {
+  getVersionError = (err) => {
     console.log("RNUpdateAPK::getVersionError - getVersionError", err);
     this.options.onError && this.options.onError(err);
   };
 
-  downloadApkError = err => {
+  downloadApkError = (err) => {
     console.log("RNUpdateAPK::downloadApkError - downloadApkError", err);
     this.options.onError && this.options.onError(err);
   };
